@@ -94,6 +94,7 @@ $("#mybee").classList.add("hide");
 const whenAuth=fb.then(async f=>{
  const u=f&&f.auth.currentUser,btn=$("#acct"),err=$("#aerr");
  if(u){btn.textContent="sign out";$("#dashb").classList.remove("hide");$("#mybee").classList.remove("hide")}
+ if(u)f.D.get(f.D.ref(f.db,"admins/"+u.uid)).then(s=>{window.IS_ADMIN=s.val()===true;const n=document.querySelector(".nav");if(window.IS_ADMIN&&n&&!document.getElementById("adminl")){const x=document.createElement("a");x.id="adminl";x.href=ROOT+"admin/";x.textContent="admin";n.insertBefore(x,n.firstChild)}}).catch(()=>{});
  btn.onclick=()=>{if(u)f.Au.signOut(f.auth).then(()=>location.href=ROOT||"./");else $("#adlg").showModal()};
  const run=p=>{if(!f){err.textContent="firebase isn’t set up yet. paste your config at the top of shared.js.";return}err.textContent="";try{sessionStorage.setItem("beez_dash","1")}catch(x){}p().then(()=>{try{sessionStorage.removeItem("beez_dash")}catch(x){}location.href=ROOT+"dashboard/"}).catch(e=>{try{sessionStorage.removeItem("beez_dash")}catch(x){}err.textContent=e.code==="auth/unauthorized-domain"?"unauthorized domain. add this exact host in firebase authorized domains: "+location.hostname:(e.code||"error").replace("auth/","").replace(/-/g," ")})};
  const cred=()=>[f.auth,$("#aem").value.trim(),$("#apw").value];
@@ -130,3 +131,22 @@ document.head.appendChild(Object.assign(document.createElement("style"),{textCon
  for(let i=1;i<=14;i++)css+="dialog[open]>:nth-child("+i+"){animation-delay:"+(i*35)+"ms}";
  css+="@media(prefers-reduced-motion:reduce){dialog[open],dialog[open]>*,dialog.closing{animation:none!important}}";
  document.head.appendChild(Object.assign(document.createElement("style"),{textContent:css}))})();
+const BADGES={admin:{l:"admin",c:"#f87171"},founder:{l:"founder",c:"#FDB800"},early:{l:"early bee",c:"#4ade80"},tester:{l:"tester",c:"#60a5fa"},champion:{l:"champion",c:"#c084fc"},vip:{l:"vip",c:"#f472b6"},helper:{l:"helper",c:"#2dd4bf"}};
+let BADGEDATA={},ADMINIDS={};
+const badgePill=id=>BADGES[id]?`<span class="bdg" style="--c:${BADGES[id].c}"><i></i>${BADGES[id].l}</span>`:"";
+const pillsFor=uid=>(ADMINIDS[uid]===true?badgePill("admin"):"")+Object.keys(BADGEDATA[uid]||{}).filter(k=>BADGEDATA[uid][k]).map(badgePill).join("");
+async function loadBadgeData(f){try{BADGEDATA=(await f.D.get(f.D.ref(f.db,"badges"))).val()||{}}catch(e){}try{ADMINIDS=(await f.D.get(f.D.ref(f.db,"admins"))).val()||{}}catch(e){}}
+function showGlobal(v){const old=document.getElementById("gmsg");if(old)old.remove();
+ let dm="";try{dm=localStorage.getItem("beez_dm")}catch(e){}
+ if(!v||!v.text||v.id===dm||(v.until&&Date.now()>v.until))return;
+ const el=document.createElement("div");el.id="gmsg";el.className="gmsg "+(["info","warn","event"].includes(v.type)?v.type:"info");
+ const t=document.createElement("span");t.textContent=v.text;const b=document.createElement("button");b.textContent="dismiss";
+ b.onclick=()=>{try{localStorage.setItem("beez_dm",v.id)}catch(e){}el.remove()};el.append(t,b);document.body.insertBefore(el,document.body.firstChild);
+ if(v.until)setTimeout(()=>el.remove(),Math.max(0,v.until-Date.now()))}
+fb.then(f=>{if(f)f.D.onValue(f.D.ref(f.db,"announcements/current"),s=>showGlobal(s.val()),()=>{})});
+document.head.appendChild(Object.assign(document.createElement("style"),{textContent:
+".gmsg{display:flex;align-items:center;justify-content:center;gap:14px;padding:10px 16px;font-weight:700;font-size:14px;text-align:center;animation:gin .4s both;position:relative;z-index:6}"+
+".gmsg.info{background:#FDB800;color:#0e0d0a}.gmsg.warn{background:#f87171;color:#1a0505}.gmsg.event{background:#c084fc;color:#14051f}.gmsg button{background:rgba(0,0,0,.18);border:0;border-radius:8px;padding:3px 10px;font-weight:800;color:inherit}"+
+"@keyframes gin{from{transform:translateY(-100%);opacity:0}}"+
+".bdg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;margin-left:8px;border-radius:99px;border:1px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);vertical-align:middle}"+
+".bdg i{width:8px;height:9px;background:var(--c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}"}));
