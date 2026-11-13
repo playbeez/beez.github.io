@@ -74,7 +74,7 @@ a.big,a.ghost{display:inline-block;text-align:center;text-decoration:none;color:
  <div class="nav"><a href="../play/">play</a><a href="../dashboard/leaderboard/">leaderboard</a><a id="dashb" class="hide" href="../dashboard/">dashboard</a><button id="acct">sign in</button><button id="mybee">mybee</button><button id="theme" aria-label="Toggle theme">theme</button></div>
 </header>
 <div id="dpage"><div class="dwrap">
- <div class="prof"><div class="pb" id="pbee"></div><div class="pi"><h2 id="pname"></h2><p class="sub" id="pmail" style="margin:4px 0 12px"></p>
+ <div class="prof"><div class="pb" id="pbee"></div><div class="pi"><h2 id="pname"></h2><p class="sub" id="pmail" style="margin:4px 0 8px"></p><div id="pbadges" style="margin:0 0 12px"></div>
   <div class="row"><input class="f" id="dname" maxlength="14" aria-label="display name"><button class="chip" id="dnsave">save name</button></div>
   <div class="cta"><button class="big" id="deb">edit mybee</button><a class="ghost" href="./" style="text-decoration:none;color:inherit">back to the game</a></div></div></div>
  <div class="grid4" id="dcards"></div>
@@ -100,7 +100,7 @@ const stats={g:0,b:0,w:0,h:[],c:0,m:0,a:0,bw:0,hist:[],bs:0};
 try{Object.assign(stats,JSON.parse(localStorage.getItem("beez")||"{}"))}catch(e){}
 $("#theme").onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==="dark"?"light":"dark"};
 function renderDash(){const s=stats;
- $("#pbee").innerHTML=beeSvg(MY,130);$("#pname").textContent=P.name;$("#pmail").textContent=window.MYMAIL||"";$("#dname").value=P.name;
+ $("#pbee").innerHTML=beeSvg(MY,130);$("#pname").textContent=P.name;$("#pmail").textContent=window.MYMAIL||"";$("#pbadges").innerHTML=pillsFor(window.MYID)||'<span class="sub" style="font-size:13px;margin:0">no special badges yet</span>';$("#dname").value=P.name;
  const acc=s.a?Math.round(100*s.w/s.a):0,avg=s.m?Math.round(s.c/5/(s.m/60000)):0,rooms=s.hist.filter(h=>h.m).length;
  $("#dcards").innerHTML=[["games played",s.g],["words spelled",s.w],["accuracy",acc+"%"],["average wpm",avg],["best wpm",s.bw],["best score",s.b],["best streak",s.bs||0],["room games",rooms]].map(c=>`<div class="st"><span class="n mono">${c[0]}</span><div class="dv mono">${typeof c[1]==="number"?c[1].toLocaleString():c[1]}</div></div>`).join("");
  const pts=s.hist.filter(h=>h.w>0).slice(-20);let chart;
@@ -113,7 +113,7 @@ function renderDash(){const s=stats;
  const B=[["first sting","play a game",s.g>=1],["regular","play 10 games",s.g>=10],["wordsmith","spell 100 words",s.w>=100],["walking dictionary","spell 500 words",s.w>=500],["speedy","reach 25 wpm",s.bw>=25],["blazing","reach 50 wpm",s.bw>=50],["flawless","get every word right in a game of 5+",s.hist.some(h=>h.ok===h.n&&h.n>=5)],["queen bee","80%+ on an impossible game",s.hist.some(h=>h.d==="impossible"&&h.ok/h.n>=.8)]];
  $("#dbadge").innerHTML=B.map(b=>`<div class="st bd${b[2]?" on":""}"><b style="font-size:18px;margin:0 0 4px">${b[0]}</b><p>${b[1]}</p></div>`).join("");
  $("#dhist").innerHTML=s.hist.slice(-8).reverse().map(h=>`<div><span>${new Date(h.t).toLocaleDateString()} · ${h.d}${h.m?" · room":""}</span><span class="mono">${h.ok}/${h.n} · ${h.w} wpm · ${h.p} pts</span></div>`).join("")||'<div><span>no games yet.</span></div>';
- $("#dlb").innerHTML=lbd.slice().sort((a,b)=>b.w-a.w).slice(0,10).map((v,k)=>`<div><span style="display:flex;align-items:center;gap:8px">${k+1}. ${beeSvg(v.bee,22)}${esc(v.name||"bee")}${v.id===window.MYID?" (you)":""}</span><b class="mono">${v.w.toLocaleString()} words</b></div>`).join("")||'<div><span>no players yet.</span></div>'}
+ $("#dlb").innerHTML=lbd.slice().sort((a,b)=>b.w-a.w).slice(0,10).map((v,k)=>`<div><span style="display:flex;align-items:center;gap:8px">${k+1}. ${beeSvg(v.bee,22)}${esc(v.name||"bee")}${v.id===window.MYID?" (you)":""}${pillsFor(v.id)}</span><b class="mono">${v.w.toLocaleString()} words</b></div>`).join("")||'<div><span>no players yet.</span></div>'}
 
 $("#deb").onclick=()=>$("#mybee").click();
 $("#dnsave").onclick=()=>{const v=$("#dname").value.trim().slice(0,14);if(v){P.name=v;try{localStorage.setItem("beez_name",v)}catch(e){}renderDash()}};
@@ -121,7 +121,7 @@ whenAuth.then(async({f,u})=>{
  if(!u){location.replace(ROOT);return}
  try{Object.assign(stats,JSON.parse(localStorage.getItem("beez")||"{}"))}catch(e){}
  let o=null;try{o=localStorage.getItem("beez_name")}catch(x){}
- P.name=o||(u.displayName||(u.email||"bee").split("@")[0]).slice(0,14);window.MYMAIL=u.email||"";window.MYID=u.uid;
+ P.name=o||(u.displayName||(u.email||"bee").split("@")[0]).slice(0,14);window.MYMAIL=u.email||"";window.MYID=u.uid;await loadBadgeData(f);
  renderDash();
  try{const db=await claude.use("db");db.collection("players").onSnapshot(s=>{lbd=s.docs.map(d=>{const v=d.data()||{};return{id:d.id,name:v.name||"",w:+v.w||0,bee:v.bee}});renderDash()},()=>{})}catch(e){}
 });
