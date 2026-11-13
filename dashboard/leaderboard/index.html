@@ -90,11 +90,11 @@ a.big,a.ghost{display:inline-block;text-align:center;text-decoration:none;color:
 <script>
 let rows=[],met="w";
 function render(){const me=window.MYID;const a=rows.slice().sort((x,y)=>(y[met]||0)-(x[met]||0)).filter(r=>(r[met]||0)>0).slice(0,25);
- $("#llist").innerHTML=a.map((v,k)=>`<div><span style="display:flex;align-items:center;gap:10px">${k+1}. ${beeSvg(v.bee,24)}${esc(v.name||"bee")}${v.id===me?" (you)":""}</span><b class="mono">${(v[met]||0).toLocaleString()}</b></div>`).join("")||"<div><span>nobody here yet. be the first.</span></div>"}
+ $("#llist").innerHTML=a.map((v,k)=>`<div><span style="display:flex;align-items:center;gap:10px">${k+1}. ${beeSvg(v.bee,24)}${esc(v.name||"bee")}${v.id===me?" (you)":""}${pillsFor(v.id)}</span><b class="mono">${(v[met]||0).toLocaleString()}</b></div>`).join("")||"<div><span>nobody here yet. be the first.</span></div>"}
 $$("#lmet .chip").forEach(b=>b.onclick=()=>{$$("#lmet .chip").forEach(x=>x.classList.remove("on"));b.classList.add("on");met=b.dataset.m;render()});
 whenAuth.then(async({f,u})=>{
  if(!u){$("#llist").innerHTML='<div><span>sign in to see the leaderboard.</span><button class="chip" id="lsi">sign in</button></div>';$("#lsi").onclick=()=>$("#adlg").showModal();return}
- window.MYID=u.uid;
+ window.MYID=u.uid;await loadBadgeData(f);
  try{const db=await claude.use("db");db.collection("players").onSnapshot(s=>{rows=s.docs.map(d=>{const v=d.data()||{};return{id:d.id,name:v.name||"",w:+v.w||0,g:+v.g||0,bw:+v.bw||0,b:+v.b||0,bee:v.bee}});render()},()=>{$("#llist").innerHTML="<div><span>couldn’t load. check your database rules.</span></div>"})}catch(e){}
 });
 </script>
