@@ -1,5 +1,6 @@
-
 const FB_CONFIG={apiKey:"AIzaSyC3Xnc3Cc63B8v1nLPONlP5Up_FbGrdon4",authDomain:"beez-7c6a4.firebaseapp.com",databaseURL:"https://beez-7c6a4-default-rtdb.firebaseio.com",projectId:"beez-7c6a4",storageBucket:"beez-7c6a4.firebasestorage.app",messagingSenderId:"928305285561",appId:"1:928305285561:web:b9b46a0eebecdbd13f8e68",measurementId:"G-YZKBTPM6G0"};
+// paste your Web client ID here (Firebase console > Authentication > Sign-in method > Google > Web SDK configuration)
+const GOOGLE_CLIENT_ID="";
 const FB_BASE="https://www.gstatic.com/firebasejs/10.14.1/";
 const fb=(async()=>{
  if(FB_CONFIG.apiKey.startsWith("YOUR"))return null;
@@ -91,14 +92,18 @@ async function pushPlayer(){try{const db=await claude.use("db"),user=await claud
 function push(){return pushPlayer()}
 $("#theme").onclick=()=>{const h=document.documentElement;h.dataset.theme=h.dataset.theme==="dark"?"light":"dark"};
 $("#mybee").classList.add("hide");
+function gisToken(){return new Promise((res,rej)=>{try{const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:"openid email profile",callback:r=>r.access_token?res(r.access_token):rej({code:"auth/"+(r.error||"google-sign-in-failed")}),error_callback:e=>rej({code:"auth/"+((e&&e.type)||"popup-closed")})});c.requestAccessToken({prompt:"select_account"})}catch(e){rej({code:"auth/google-script-not-loaded"})}})}
+if(GOOGLE_CLIENT_ID){const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;document.head.appendChild(s)}
 const whenAuth=fb.then(async f=>{
  const u=f&&f.auth.currentUser,btn=$("#acct"),err=$("#aerr");
  if(u){btn.textContent="sign out";$("#dashb").classList.remove("hide");$("#mybee").classList.remove("hide")}
- if(u)f.D.get(f.D.ref(f.db,"admins/"+u.uid)).then(s=>{window.IS_ADMIN=s.val()===true;const n=document.querySelector(".nav");if(window.IS_ADMIN&&n&&!document.getElementById("adminl")){const x=document.createElement("a");x.id="adminl";x.href=ROOT+"admin/";x.textContent="admin";n.insertBefore(x,n.firstChild)}}).catch(()=>{});
+ if(u)f.D.get(f.D.ref(f.db,"admins/"+u.uid)).then(s=>{window.IS_ADMIN=s.exists();const n=document.querySelector(".nav");if(window.IS_ADMIN&&n&&!document.getElementById("adminl")){const x=document.createElement("a");x.id="adminl";x.href=ROOT+"admin/";x.textContent="admin";n.insertBefore(x,n.firstChild)}}).catch(()=>{});
  btn.onclick=()=>{if(u)f.Au.signOut(f.auth).then(()=>location.href=ROOT||"./");else $("#adlg").showModal()};
  const run=p=>{if(!f){err.textContent="firebase isn’t set up yet. paste your config at the top of shared.js.";return}err.textContent="";try{sessionStorage.setItem("beez_dash","1")}catch(x){}p().then(()=>{try{sessionStorage.removeItem("beez_dash")}catch(x){}location.href=ROOT+"dashboard/"}).catch(e=>{try{sessionStorage.removeItem("beez_dash")}catch(x){}err.textContent=e.code==="auth/unauthorized-domain"?"unauthorized domain. add this exact host in firebase authorized domains: "+location.hostname:(e.code||"error").replace("auth/","").replace(/-/g," ")})};
  const cred=()=>[f.auth,$("#aem").value.trim(),$("#apw").value];
- $("#agg").onclick=()=>run(()=>{const g=new f.Au.GoogleAuthProvider();return f.Au.signInWithPopup(f.auth,g).catch(e=>["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code)?f.Au.signInWithRedirect(f.auth,g):Promise.reject(e))});
+ $("#agg").onclick=()=>run(async()=>{
+  if(GOOGLE_CLIENT_ID){const tok=await gisToken();return f.Au.signInWithCredential(f.auth,f.Au.GoogleAuthProvider.credential(null,tok))}
+  const g=new f.Au.GoogleAuthProvider();return f.Au.signInWithPopup(f.auth,g).catch(e=>["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(e.code)?f.Au.signInWithRedirect(f.auth,g):Promise.reject(e))});
  $("#ain").onclick=()=>run(()=>f.Au.signInWithEmailAndPassword(...cred()));
  $("#acr").onclick=()=>run(()=>f.Au.createUserWithEmailAndPassword(...cred()));
  if(u){const ref=f.D.ref(f.db,"users/"+u.uid);let ready=false;
@@ -134,7 +139,7 @@ document.head.appendChild(Object.assign(document.createElement("style"),{textCon
 const BADGES={admin:{l:"admin",c:"#f87171"},founder:{l:"founder",c:"#FDB800"},early:{l:"early bee",c:"#4ade80"},tester:{l:"tester",c:"#60a5fa"},champion:{l:"champion",c:"#c084fc"},vip:{l:"vip",c:"#f472b6"},helper:{l:"helper",c:"#2dd4bf"}};
 let BADGEDATA={},ADMINIDS={};
 const badgePill=id=>BADGES[id]?`<span class="bdg" style="--c:${BADGES[id].c}"><i></i>${BADGES[id].l}</span>`:"";
-const pillsFor=uid=>(ADMINIDS[uid]===true?badgePill("admin"):"")+Object.keys(BADGEDATA[uid]||{}).filter(k=>BADGEDATA[uid][k]).map(badgePill).join("");
+const pillsFor=uid=>(ADMINIDS[uid]?badgePill("admin"):"")+Object.keys(BADGEDATA[uid]||{}).filter(k=>BADGEDATA[uid][k]).map(badgePill).join("");
 async function loadBadgeData(f){try{BADGEDATA=(await f.D.get(f.D.ref(f.db,"badges"))).val()||{}}catch(e){}try{ADMINIDS=(await f.D.get(f.D.ref(f.db,"admins"))).val()||{}}catch(e){}}
 function showGlobal(v){const old=document.getElementById("gmsg");if(old)old.remove();
  let dm="";try{dm=localStorage.getItem("beez_dm")}catch(e){}
@@ -150,3 +155,9 @@ document.head.appendChild(Object.assign(document.createElement("style"),{textCon
 "@keyframes gin{from{transform:translateY(-100%);opacity:0}}"+
 ".bdg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;margin-left:8px;border-radius:99px;border:1px solid var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);vertical-align:middle}"+
 ".bdg i{width:8px;height:9px;background:var(--c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}"}));
+var BS=Object.assign({diff:"easy",n:8,mode:"practice",mute:false,rate:.85,rm:false},(()=>{try{return JSON.parse(localStorage.getItem("beez_set")||"{}")}catch(e){return{}}})());
+function saveBS(){try{localStorage.setItem("beez_set",JSON.stringify(BS))}catch(e){}}
+(function(){const h=document.documentElement;let t=null;try{t=localStorage.getItem("beez_theme")}catch(e){}if(t==="light"||t==="dark")h.dataset.theme=t;if(BS.rm)h.classList.add("rm");
+ new MutationObserver(()=>{try{localStorage.setItem("beez_theme",h.dataset.theme)}catch(e){}}).observe(h,{attributes:true,attributeFilter:["data-theme"]});
+ const n=document.querySelector(".nav");if(n&&!document.getElementById("setl")){const a=document.createElement("a");a.id="setl";a.href=ROOT+"settings/";a.textContent="settings";const th=document.getElementById("theme");th?n.insertBefore(a,th):n.appendChild(a)}
+ document.head.appendChild(Object.assign(document.createElement("style"),{textContent:"html.rm *,html.rm *:before,html.rm *:after{animation:none!important;transition:none!important}"}))})();
